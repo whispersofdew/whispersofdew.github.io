@@ -18,7 +18,12 @@ export const round = (value: number, accuracy = 2) => {
 const transformRegexp =
   /(matrix\(-?\d+(\.\d+)?, -?\d+(\.\d+)?, -?\d+(\.\d+)?, -?\d+(\.\d+)?, )(-?\d+(\.\d+)?), (-?\d+(\.\d+)?)\)/;
 
-export const getTransformFromCss = (transformCssString: string) => {
+type TransformedCssType = {
+  x: number;
+  y: number;
+};
+
+export const getTransformFromCss = (transformCssString: string): TransformedCssType => {
   const data = transformCssString.match(transformRegexp);
   if (!data) return { x: 0, y: 0 };
   return {
@@ -27,9 +32,9 @@ export const getTransformFromCss = (transformCssString: string) => {
   };
 };
 
-type Colors = [number, number, number];
+type ColorsType = [number, number, number];
 
-export const getColorContrastValue = ([red, green, blue] : Colors) : number =>
+export const getColorContrastValue = ([red, green, blue] : ColorsType) : number =>
   // http://www.w3.org/TR/AERT#color-contrast
   Math.round((red * 299 + green * 587 + blue * 114) / 1000);
 
@@ -39,11 +44,11 @@ export const getContrastType = (contrastValue: number) : ContrastType => (contra
 export const shortColorRegExp = /^#[0-9a-f]{3}$/i;
 export const longColorRegExp = /^#[0-9a-f]{6}$/i;
 
-export const checkColor = (color: string) => {
+export const checkColor = (color: string): void => {
   if (!longColorRegExp.test(color) && !shortColorRegExp.test(color)) throw new Error(`invalid hex color: ${color}`);
 };
 
-export const hex2rgb = (color: string) => {
+export const hex2rgb = (color: string): ColorsType => {
   checkColor(color);
   if (shortColorRegExp.test(color)) {
     const red = parseInt(color.substring(1, 2), 16);
@@ -71,9 +76,11 @@ const customers: CustomerType[] = [
   { id: 2, name: 'name2', age: 22, isSubscribed: false },
 ];
 
+type RecordCustomerType = Record<number, Omit<CustomerType, 'id'>>;
+
 export const transformCustomers = (customers: CustomerType[]) => {
   return customers.reduce((acc, customer: CustomerType) => {
     acc[customer.id] = { name: customer.name, age: customer.age, isSubscribed: customer.isSubscribed };
     return acc;
-  }, {} as Record<number, Omit<CustomerType, 'id'>>);
+  }, {} as RecordCustomerType);
 };

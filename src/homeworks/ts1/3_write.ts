@@ -129,6 +129,8 @@ export const createRandomProduct = (createdAt: string): Product => {
 
 const operationNames = ['Приемка', 'Инвентаризация', 'Учет', 'Продажа', 'Рекламация'];
 const operationAmounts = [1, 2, 3, 4, 5];
+type OperationType = 'Cost' | 'Profit';
+const operationTypes: Array<OperationType> = ['Cost', 'Profit'];
 
 export const createRandomOperation = (createdAt: string) : Operation => {
     const id = generateId();
@@ -139,6 +141,6 @@ export const createRandomOperation = (createdAt: string) : Operation => {
       id: generateId(),
       name: 'Инструменты',
     };
-    const type = 'Profit';
+    const type = operationTypes[getRandomElementFromList(operationTypes.length)];
     return { id, name, desc, createdAt, amount, category, type};
 };
