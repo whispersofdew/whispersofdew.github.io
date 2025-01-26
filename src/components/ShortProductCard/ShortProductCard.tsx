@@ -13,30 +13,22 @@ interface IModalProps {
 
 export const ShortProductCard = ({ img, price, name, description, count }: PropsWithChildren<IModalProps>) => {
   return (
-    <table>
-      <tbody>
-        <tr>
-          <td rowSpan={3}>
-            <img src={logo} alt="fireSpot" />
-          </td>
-          <td colSpan={2}>
-            <h1>{name}</h1>
-          </td>
-        </tr>
-        <tr>
-          <td>
-            <p>{price} руб.</p>
-          </td>
-          <td>
-            <BasketButton size={'small'} count={count} />
-          </td>
-        </tr>
-        <tr>
-          <td colSpan={2}>
-            <div className={'div-max-height'}>{description}</div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div className="short-product-card-row-wrapper">
+      <div className="logo">
+        <img className="img" src={logo} alt="fireSpot" />
+      </div>
+      <div className="name">
+        <h1>{name}</h1>
+      </div>
+      <div className="price">
+        <p>{price} руб.</p>
+      </div>
+      <div className="basketButton">
+        <BasketButton size={'small'} count={count} />
+      </div>
+      <div className="description">
+        <div className={'div-max-height'}>{description}</div>
+      </div>
+    </div>
   );
 };
