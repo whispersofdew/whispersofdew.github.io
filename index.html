@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AVDO Maturity Quiz</title>
+  <meta name="description" content="Экспресс‑профиль зрелости AVDO" />
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen">
+  <div id="root"></div>
+
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script type="text/babel" data-presets="typescript,react">
+    const { useMemo, useState } = React;
+
+    /**
+     * AVDO Maturity Quiz — двухэтапный квиз с приветственным экраном,
+     * адаптированным SVG-героем и расширенным объяснением шкалы 1–7.
+     */
+
+    /*************************
+     * ДАННЫЕ ВОПРОСОВ
+     *************************/
+    // Операционная часть (Блок 1)
+    const OP_QUESTIONS = [
+      // Сотрудники
+      { id: "HR1", block: "Сотрудники", text: "Когда что-то идёт не так — ищут причину или виноватого?" },
+      { id: "HR2", block: "Сотрудники", text: "Если руководителя нет — работа останавливается или продолжается сама?" },
+      { id: "HR3", block: "Сотрудники", text: "Люди чаще говорят ‘мне не сказали’ или ‘я сделал как посчитал нужным’?" },
+      { id: "HR4", block: "Сотрудники", text: "Текучка и усталость воспринимаются как норма?" },
+      // Клиенты
+      { id: "CL1", block: "Клиенты", text: "Мы чаще реагируем на жалобы или предупреждаем их заранее?" },
+      { id: "CL2", block: "Клиенты", text: "Клиенты знают конкретного человека, к кому обратиться, или ‘пишут в общий ящик’?" },
+      { id: "CL3", block: "Клиенты", text: "Потеря клиента воспринимается как случайность или как сигнал к изменению системы?" },
+      { id: "CL4", block: "Клиенты", text: "Кто лучше всех знает клиента — продавец, бухгалтер или директор?" },
+      // Финансы
+      { id: "FN1", block: "Финансы", text: "Руководство знает реальные показатели (прибыль, маржа, кэш‑фло)?" },
+      { id: "FN2", block: "Финансы", text: "План/факт анализируется и влияет на решения?" },
+      { id: "FN3", block: "Финансы", text: "Финансовые данные доступны руководителям подразделений?" },
+      // Производство и логистика
+      { id: "PL1", block: "Производство", text: "Сроки выполнения заказов стабильны или часто срываются?" },
+      { id: "PL2", block: "Производство", text: "Как быстро реагируем на сбой или аварию?" },
+      { id: "PL3", block: "Производство", text: "Планирование ресурсов реально связано с продажами и снабжением?" },
+    ];
+
+    // Стратегическая часть (Блок 2)
+    const ST_QUESTIONS = [
+      // Стратегия
+      { id: "STG1", block: "Стратегия", text: "Цели компании чётко определены и известны команде?" },
+      { id: "STG2", block: "Стратегия", text: "Решения принимаются по приоритетам, а не по ‘горящим вопросам’?" },
+      { id: "STG3", block: "Стратегия", text: "Есть план на случай кризиса, а не только реакции по факту?" },
+      // Структура
+      { id: "STR1", block: "Структура", text: "Кто отвечает за результат — понятно, без ‘все вместе’?" },
+      { id: "STR2", block: "Структура", text: "Зоны ответственности не пересекаются и согласованы?" },
+      { id: "STR3", block: "Структура", text: "Межфункциональные решения принимаются быстро, без ‘зависаний’?" },
+      // Управленческие процессы
+      { id: "PRC1", block: "Упр. процессы", text: "Совещания приводят к действиям, а не к отчётам ради отчётов?" },
+      { id: "PRC2", block: "Упр. процессы", text: "Исполнение задач отслеживается системно, а не ‘вручную’?" },
+      { id: "PRC3", block: "Упр. процессы", text: "Есть обратная связь по результатам решений (что сработало, что нет)?" },
+      // Организационное поведение
+      { id: "BEH1", block: "Поведение", text: "Руководители делятся информацией, а не ‘держат при себе’?" },
+      { id: "BEH2", block: "Поведение", text: "Ошибки — источник роста, а не поводы для наказания?" },
+      { id: "BEH3", block: "Поведение", text: "Команда чаще предлагает решения, чем ждёт указаний?" },
+    ];
+
+    /*************************
+     * ШКАЛА 1–7 (объяснение)
+     *************************/
+    const LEVELS = [
+      { num: 1, name: "Хаос", desc: "Всё держится на людях, не на системе." },
+      { num: 2, name: "Формализация", desc: "Порядок на бумаге, в реальности не работает." },
+      { num: 3, name: "Систематизация", desc: "Есть правила, но слабые сквозные связи." },
+      { num: 4, name: "Стабилизация", desc: "Работает ровно, но теряется скорость и поиск нового." },
+      { num: 5, name: "Управляемость", desc: "Контроль высок, изменения вызывают тревогу." },
+      { num: 6, name: "Оптимизация", desc: "Аналитика и улучшения — норма поведения." },
+      { num: 7, name: "Лидерство", desc: "Компания сама создаёт изменения и ведёт рынок." },
+    ];
+
+    const SCALE = LEVELS.map(l => ({ value: l.num, label: `${l.num} — ${l.name}` }));
+
+    /*************************
+     * ХЕЛПЕРЫ
+     *************************/
+    function avg(nums:number[]){const valid=nums.filter(n=>!Number.isNaN(n));return valid.length?valid.reduce((a,b)=>a+b,0)/valid.length:0;}
+    function nearestLevel(x:number){return Math.min(7,Math.max(1,Math.round(x)))}
+
+    /*************************
+     * ГЛАВНЫЙ КОМПОНЕНТ
+     *************************/
+    function AVDOQuiz(){
+      const [started,setStarted]=useState(false);
+      const [phase,setPhase]=useState<'op'|'st'|'done'>('op');
+      const [answers,setAnswers]=useState<Record<string,number>>({});
+      const [index,setIndex]=useState(0);
+      const [fade,setFade]=useState(true);
+
+      const questions = phase==='op' ? OP_QUESTIONS : ST_QUESTIONS;
+      const current = started && phase!=='done' ? questions[index] : null;
+
+      const handleSelect=(v:number)=>{
+        if(!current) return;
+        setFade(false);
+        setTimeout(()=>{
+          setAnswers(s=>({...s,[current.id]:v}));
+          const last = index===questions.length-1;
+          if(!last){ setIndex(i=>i+1); setFade(true); }
+          else{
+            if(phase==='op'){ setPhase('st'); setIndex(0); setFade(true); }
+            else { setPhase('done'); }
+          }
+        },250);
+      };
+
+      // Подсчёты
+      const opScore = useMemo(()=>avg(OP_QUESTIONS.map(q=>answers[q.id]??NaN)),[answers]);
+      const stScore = useMemo(()=>avg(ST_QUESTIONS.map(q=>answers[q.id]??NaN)),[answers]);
+      const overall = useMemo(()=>avg([opScore, stScore].filter(x=>x>0)),[opScore,stScore]);
+
+      const opLevel = nearestLevel(opScore||0);
+      const stLevel = nearestLevel(stScore||0);
+      const overallLevel = nearestLevel(overall||0);
+
+      const progress = started && phase!=='done' ? ((index+1)/questions.length)*100 : 0;
+
+      return (
+        <div className="min-h-screen bg-[#0F1922] text-white flex items-center justify-center p-6">
+          <LogoAVDO />
+            <div className="w-full max-w-5xl">
+            {!started && (
+              <Intro onStart={()=>setStarted(true)} />
+            )}
+
+            {started && phase!=='done' && (
+              <div className="max-w-3xl mx-auto">
+                <header className="mb-6 text-center">
+                  <p className="text-sm tracking-wide uppercase text-[#5BC8DB]">
+                    {phase==='op' ? 'Шаг 1 из 2 — Операционная зрелость' : 'Шаг 2 из 2 — Стратегическая зрелость'}
+                  </p>
+                  <div className="h-2 w-full bg-[#163C4C] rounded-full mt-3 overflow-hidden">
+                    <div className="h-2 bg-[#05ACD5] transition-all duration-500" style={{width:`${progress}%`}} />
+                  </div>
+                </header>
+
+                <div className={`text-center transition-opacity duration-500 ${fade? 'opacity-100':'opacity-0'}`}>
+                  <h2 className="text-xl text-[#05ACD5] mb-2">{current?.block}</h2>
+                  <p className="mb-6 text-lg">{current?.text}</p>
+                  <div className="flex flex-wrap justify-center gap-3">
+                    {SCALE.map(s=> (
+                      <button key={s.value} onClick={()=>handleSelect(s.value)}
+                        className="px-4 py-2 rounded-full border border-[#18657E] hover:bg-[#05ACD5] hover:text-black transition-colors"
+                        title={`${s.label}: ${LEVELS[s.value-1].desc}`}
+                      >
+                        {s.value}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Расширенное объяснение шкалы */}
+                  <ScaleLegend />
+
+                  <p className="mt-4 text-sm opacity-70">Вопрос {index+1} из {questions.length}</p>
+                </div>
+
+                {phase==='op' && index===OP_QUESTIONS.length-1 && (
+                  <p className="mt-6 text-center text-sm text-[#9EA0A1]">
+                    Далее — стратегический уровень: как принимаются решения и задаются приоритеты.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {started && phase==='done' && (
+              <Results
+                opScore={opScore}
+                stScore={stScore}
+                overall={overall}
+                opLevel={opLevel}
+                stLevel={stLevel}
+                overallLevel={overallLevel}
+                onReset={()=>{ setStarted(false); setPhase('op'); setIndex(0); setAnswers({}); setFade(true); }}
+              />
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    /*************************
+     * ВСТУПИТЕЛЬНЫЙ ЭКРАН
+     *************************/
+    function Intro({ onStart }:{ onStart: ()=>void }){
+      return (
+        <div className="grid md:grid-cols-2 gap-8 items-center">
+          <div className="order-2 md:order-1">
+            <h1 className="text-3xl md:text-4xl font-semibold text-white leading-tight">
+              Проверьте <span className="text-[#05ACD5]">экспресс‑профиль зрелости</span> вашей организации
+            </h1>
+            <p className="mt-4 text-lg opacity-90">За несколько минут вы увидите, насколько согласованы два мира вашей компании:</p>
+            <ul className="mt-4 text-sm opacity-80 space-y-2">
+              <li>• <b>Операционный</b> — что происходит каждый день (люди, клиенты, деньги, производство)</li>
+              <li>• <b>Стратегический</b> — как принимаются решения и задаются приоритеты</li>
+            </ul>
+            <p className="mt-4 text-sm text-[#9EA0A1]">Это не экзамен. Это зеркальный снимок системы — чтобы понять, где вы сейчас и куда двигаться дальше.</p>
+            <button onClick={onStart} className="mt-6 rounded-2xl px-6 py-3 bg-[#05ACD5] text-black font-medium hover:bg-[#5BC8DB]">
+              Начать диагностику
+            </button>
+          </div>
+
+          <div className="order-1 md:order-2 w-full">
+            <HeroAVDO />
+          </div>
+        </div>
+      );
+    }
+
+    /*************************
+     * SVG‑ГЕРОЙ (адаптация исходного рисунка в фирменной палитре)
+     *************************/
+    function HeroAVDO(){
+      return (
+        <div className="relative w-full aspect-square bg-[#0F1922]">
+          <svg viewBox="0 0 600 600" className="w-full h-full">
+            {/* Фоновые концентрические кольца */}
+            <g fill="none" stroke="#163C4C" strokeWidth="2">
+              <circle cx="300" cy="300" r="260" />
+              <circle cx="300" cy="300" r="210" />
+              <circle cx="300" cy="300" r="160" />
+              <circle cx="300" cy="300" r="110" />
+            </g>
+
+            {/* Радиальные стрелки (энергия) */}
+            <g stroke="#05ACD5" strokeWidth="3" strokeLinecap="round" opacity="0.85">
+              {Array.from({length:8}).map((_,i)=>{
+                const ang = (i/8)*Math.PI*2;
+                const x1 = 300 + Math.cos(ang)*120; const y1 = 300 + Math.sin(ang)*120;
+                const x2 = 300 + Math.cos(ang)*250; const y2 = 300 + Math.sin(ang)*250;
+                return (
+                  <g key={i}>
+                    <line x1={x1} y1={y1} x2={x2} y2={y2} />
+                    <polygon fill="#05ACD5" points={`${x2},${y2} ${x2-6*Math.cos(ang-0.3)},${y2-6*Math.sin(ang-0.3)} ${x2-6*Math.cos(ang+0.3)},${y2-6*Math.sin(ang+0.3)}`} />
+                  </g>
+                );
+              })}
+            </g>
+
+            {/* Малые человеческие фигуры как точки‑узлы на внешнем кольце */}
+            <g>
+              {Array.from({length:12}).map((_,i)=>{
+                const ang=(i/12)*Math.PI*2; const R=260;
+                const x=300+Math.cos(ang)*R; const y=300+Math.sin(ang)*R;
+                return <circle key={i} cx={x} cy={y} r="6" fill={i%3===0? '#5BC8DB':'#128AAB'} />
+              })}
+            </g>
+
+            {/* Центральные фигуры (ядро) */}
+            <g>
+              <circle cx="280" cy="300" r="10" fill="#05ACD5" />
+              <circle cx="320" cy="300" r="10" fill="#05ACD5" />
+              <circle cx="300" cy="280" r="8" fill="#5BC8DB" />
+              <circle cx="300" cy="320" r="8" fill="#5BC8DB" />
+            </g>
+
+            {/* Орнамент связей */}
+            <g stroke="#18657E" strokeWidth="2" opacity="0.6">
+              <path d="M140 300 Q300 180 460 300" fill="none" />
+              <path d="M170 360 Q300 210 430 360" fill="none" />
+              <path d="M170 240 Q300 390 430 240" fill="none" />
+            </g>
+          </svg>
+
+          {/* Лёгкое бирюзовое свечение в центре */}
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="w-40 h-40 rounded-full" style={{
+              background: 'radial-gradient(closest-side, rgba(5,172,213,0.35), rgba(5,172,213,0))'
+            }} />
+          </div>
+        </div>
+      );
+    }
+
+    /*************************
+     * ОБЪЯСНЕНИЕ ШКАЛЫ (лента + раскрытие описаний)
+     *************************/
+    function ScaleLegend(){
+      const [open,setOpen]=useState(false);
+      return (
+        <div className="mt-6 text-xs text-[#9EA0A1] opacity-90">
+          <div className="flex justify-between border-t border-[#18657E] pt-3">
+            {LEVELS.map(l=> (
+              <div key={l.num} className="w-10 text-center group">
+                <div className="text-[#05ACD5] font-semibold">{l.num}</div>
+                <div className="opacity-90">{l.name}</div>
+                <div className="invisible group-hover:visible absolute mt-1 px-2 py-1 bg-[#163C4C] border border-[#18657E] rounded text-[11px] whitespace-nowrap">
+                  {l.desc}
+                </div>
+              </div>
+            ))}
+          </div>
+          <button onClick={()=>setOpen(o=>!o)} className="mt-3 text-[11px] underline decoration-dotted decoration-[#5BC8DB] text-[#5BC8DB]">
+            {open? 'Скрыть подробности шкалы' : 'Подробнее о шкале уровней'}
+          </button>
+          {open && (
+            <ul className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2 text-[12px]">
+              {LEVELS.map(l=> (
+                <li key={l.num} className="p-2 rounded border border-[#18657E] bg-[#0F1922]"><b className="text-[#05ACD5]">{l.num} — {l.name}:</b> {l.desc}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      );
+    }
+
+    /*************************
+     * ЭКРАН РЕЗУЛЬТАТОВ
+     *************************/
+    function Results({
+      opScore, stScore, overall,
+      opLevel, stLevel, overallLevel,
+      onReset,
+    }:{
+      opScore:number; stScore:number; overall:number;
+      opLevel:number; stLevel:number; overallLevel:number;
+      onReset:()=>void;
+    }){
+      return (
+        <section className="bg-[#163C4C] rounded-2xl p-6 max-w-3xl mx-auto">
+          <h2 className="text-2xl font-semibold text-[#05ACD5] mb-2">Экспресс‑профиль зрелости</h2>
+          <p className="text-sm mb-6 opacity-90">Быстрая оценка текущего состояния системы по двум слоям — операционному и стратегическому. Шкала 1–7: от «Хаоса» к «Лидерству изменений».</p>
+
+          <ProfileRow label="Операционная зрелость" score={opScore} level={opLevel} />
+          <ProfileRow label="Стратегическая зрелость" score={stScore} level={stLevel} />
+
+          <div className="mt-6 border-t border-[#18657E] pt-4">
+            <ProfileRow label={<b>Общий уровень</b>} score={overall} level={overallLevel} big />
+          </div>
+
+          <div className="mt-6 flex flex-wrap gap-3">
+            <button onClick={onReset} className="rounded-2xl px-5 py-3 border border-[#05ACD5]">Пройти заново</button>
+            <a href="#lead" className="rounded-2xl px-5 py-3 bg="#05ACD5] text-black font-medium">Получить PDF‑разбор</a>
+          </div>
+
+          <LeadForm />
+        </section>
+      );
+    }
+
+    function ProfileRow({label, score, level, big}:{label:React.ReactNode; score:number; level:number; big?:boolean}){
+      const pct = Math.max(0, Math.min(100, (score/7)*100));
+      return (
+        <div className="mb-4">
+          <div className="flex items-end justify-between mb-2">
+            <div className={`text-sm ${big? 'text-base':''}`}>{label}</div>
+            <div className={`text-[#05ACD5] font-semibold ${big? 'text-lg':''}`}>{score>0? `${score.toFixed(2)} — Уровень ${level}` : 'нет данных'}</div>
+          </div>
+          <div className="h-2 bg-[#0F1922] rounded">
+            <div className="h-2 bg-[#05ACD5] rounded" style={{width:`${pct}%`}} />
+          </div>
+        </div>
+      );
+    }
+
+    function LeadForm(){
+      return (
+        <div id="lead" className="mt-10 p-5 bg-[#0F1922] border border-[#18657E] rounded-2xl">
+          <h3 className="text-lg font-medium mb-2 text-[#05ACD5]">Получить бесплатный PDF‑разбор</h3>
+          <p className="text-sm opacity-80 mb-4">Оставьте контакты — пришлём интерпретацию результатов и рекомендации по переходу на следующий уровень AVDO.</p>
+          <form className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <input className="px-3 py-2 rounded-xl bg-[#163C4C] border border-[#18657E]" placeholder="Имя" />
+            <input className="px-3 py-2 rounded-xl bg-[#163C4C] border border-[#18657E]" placeholder="Email" />
+            <input className="px-3 py-2 rounded-xl bg-[#163C4C] border border-[#18657E]" placeholder="Компания" />
+            <textarea className="md:col-span-3 px-3 py-2 rounded-xl bg-[#163C4C] border border-[#18657E]" placeholder="Комментарий (необязательно)" />
+            <button className="md:col-span-3 rounded-2xl px-5 py-3 bg-[#05ACD5] text-black font-medium">Получить PDF</button>
+          </form>
+          <p className="mt-3 text-xs text-[#9EA0A1]">Нажимая кнопку, вы соглашаетесь с политикой конфиденциальности.</p>
+        </div>
+      );
+    }
+
+    /*************************
+     * ЛОГОТИП (адаптивный, во всех экранах)
+     *************************/
+    function LogoAVDO(){
+      return (
+        <a href="https://www.avdo.org" target="_blank" rel="noopener noreferrer" aria-label="AVDO"
+           className="z-50 fixed top-4 left-4 md:left-6 flex items-center gap-2">
+          {/* TODO: заменить на оригинальный SVG */}
+          <svg viewBox="0 0 100 100" className="w-8 h-8 md:w-10 md:h-10" role="img">
+            <title>AVDO</title>
+            <circle cx="50" cy="50" r="45" stroke="#05ACD5" strokeWidth="3" fill="none"/>
+            <path d="M35 68 L50 32 L65 68 Z" fill="#05ACD5"/>
+          </svg>
+          <span className="text-[#05ACD5] font-semibold tracking-wide text-base md:text-lg">AVDO</span>
+        </a>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(AVDOQuiz));
+  </script>
+</body>
+</html>
+
+
