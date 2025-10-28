@@ -85,23 +85,23 @@
     /*************************
      * ХЕЛПЕРЫ
      *************************/
-    function avg(nums:number[]){const valid=nums.filter(n=>!Number.isNaN(n));return valid.length?valid.reduce((a,b)=>a+b,0)/valid.length:0;}
-    function nearestLevel(x:number){return Math.min(7,Math.max(1,Math.round(x)))}
+    function avg(nums){const valid=nums.filter(n=>!Number.isNaN(n));return valid.length?valid.reduce((a,b)=>a+b,0)/valid.length:0;}
+    function nearestLevel(x){return Math.min(7,Math.max(1,Math.round(x)))}
 
     /*************************
      * ГЛАВНЫЙ КОМПОНЕНТ
      *************************/
     function AVDOQuiz(){
       const [started,setStarted]=useState(false);
-      const [phase,setPhase]=useState<'op'|'st'|'done'>('op');
-      const [answers,setAnswers]=useState<Record<string,number>>({});
+      const [phase,setPhase]=useState('op');
+      const [answers,setAnswers]=useState({});
       const [index,setIndex]=useState(0);
       const [fade,setFade]=useState(true);
 
       const questions = phase==='op' ? OP_QUESTIONS : ST_QUESTIONS;
       const current = started && phase!=='done' ? questions[index] : null;
 
-      const handleSelect=(v:number)=>{
+      const handleSelect=(v)=>{
         if(!current) return;
         setFade(false);
         setTimeout(()=>{
@@ -192,7 +192,7 @@
     /*************************
      * ВСТУПИТЕЛЬНЫЙ ЭКРАН
      *************************/
-    function Intro({ onStart }:{ onStart: ()=>void }){
+    function Intro({ onStart }){
       return (
         <div className="grid md:grid-cols-2 gap-8 items-center">
           <div className="order-2 md:order-1">
@@ -321,10 +321,6 @@
       opScore, stScore, overall,
       opLevel, stLevel, overallLevel,
       onReset,
-    }:{
-      opScore:number; stScore:number; overall:number;
-      opLevel:number; stLevel:number; overallLevel:number;
-      onReset:()=>void;
     }){
       return (
         <section className="bg-[#163C4C] rounded-2xl p-6 max-w-3xl mx-auto">
@@ -340,7 +336,7 @@
 
           <div className="mt-6 flex flex-wrap gap-3">
             <button onClick={onReset} className="rounded-2xl px-5 py-3 border border-[#05ACD5]">Пройти заново</button>
-            <a href="#lead" className="rounded-2xl px-5 py-3 bg="#05ACD5] text-black font-medium">Получить PDF‑разбор</a>
+            <a href="#lead" className="rounded-2xl px-5 py-3 bg-[#05ACD5] text-black font-medium">Получить PDF‑разбор</a>
           </div>
 
           <LeadForm />
@@ -348,7 +344,7 @@
       );
     }
 
-    function ProfileRow({label, score, level, big}:{label:React.ReactNode; score:number; level:number; big?:boolean}){
+    function ProfileRow({label, score, level, big}){
       const pct = Math.max(0, Math.min(100, (score/7)*100));
       return (
         <div className="mb-4">
